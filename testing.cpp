@@ -1,10 +1,14 @@
 #include <tomcrypt.h>
 #include <bits/stdc++.h>
 #include <cstring>
+#include <sstream>
+#include <vector>
+#include <string.h>
+#include <fstream>
 #include <iostream>
+
 #define KEYSIZE 16
 #define BUFFER_SIZE 1024
-
 using namespace std;
 
 unsigned char key[KEYSIZE] = "123456789012345";
@@ -13,17 +17,40 @@ unsigned char IV[KEYSIZE] = "bbcdefhij12345";
 int Enc(unsigned char* key, unsigned char* message);
 int Dec(unsigned char* key, unsigned char* cipher);
 
-int main(){
+int main(int argc, char** argv){
 
-	unsigned char mssg[BUFFER_SIZE] = "hello world Alice Bob EVE";
-	
-	Enc(key,mssg);
-    cout << mssg << endl;
+    //open file to read
+    ifstream ifs(argv[1]);
+    if (!ifs){
+        //file not found
+        cout << "File \"" << argv[1] << "\" not found!" << endl;
+        return -1;
+    }
 
-    cout << "\nYeet\n" << endl;
 
-	Dec(key,mssg);
-	cout << mssg << endl;
+    //get argument parameter for N messages
+    int n;
+    string line;
+    getline(ifs,line,'\n');
+
+    n = stoi(line);
+    
+    vector<string> messages(n);
+    for(int i = 0; i < n; i++){
+        getline(ifs,line,'\n');
+        messages[i] = line;
+    }
+
+
+    for(int i = 0; i < n; i++)
+    {
+        unsigned char mssg[BUFFER_SIZE];
+        memcpy(mssg,messages[i].c_str(),BUFFER_SIZE);
+        Enc(key,mssg);
+        cout << mssg << endl << "---------------------------------------------------\n";
+        Dec(key,mssg);
+        cout << mssg << endl << "---------------------------------------------------\n";
+    }	
 
 	return 0;
 }
