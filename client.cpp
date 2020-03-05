@@ -26,6 +26,12 @@ int Enc(unsigned char* key, unsigned char* message);
 
 int main (int argc, char** argv)
 {
+    //makes sure message file is provided
+    if(argc < 2){
+        cout << "NOOB" << endl;
+        return -1;     
+    } 
+
     //  Prepare our context and socket
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
