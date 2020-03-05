@@ -5,6 +5,8 @@
 
 #include <tomcrypt.h>
 
+#define KEYSIZE 16
+#define BUFFER_SIZE 1024
 using namespace std;
 
 void pseudo_random_generator(unsigned char* arr, int keysize)
@@ -44,22 +46,19 @@ int main () {
     zmq::socket_t socket (context, ZMQ_REP);
     socket.bind ("tcp://*:55558");
 
+    int i = 0;
+
+    cout << "SERVER ONLINE" << endl;
 
     while (true) {
-        char recv_arr[100];
+        char recv_arr[BUFFER_SIZE];
 
         //  Wait for next request from client
-        socket.recv(recv_arr, 100);
-        cout<<"before decryption "<<recv_arr<<endl;
-        char decrypted_text[sizeof(recv_arr)];
+        socket.recv(recv_arr, BUFFER_SIZE);
+        cout << recv_arr << endl;
+        socket.send(to_string(i).c_str(), BUFFER_SIZE);
+        i++;
 
-        decrypt_OTP(recv_arr, decrypted_text, sizeof(recv_arr));
-
-        cout<<"after decryption "<<decrypted_text<<endl;
-
-
-        //char send_arr[] = "successfully received your message";
-        socket.send("OK", 100);
     }
     return 0;
 }
