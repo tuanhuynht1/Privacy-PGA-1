@@ -16,11 +16,11 @@ int Dec(unsigned char* key, unsigned char* cipher);
 int main(){
 
 	unsigned char mssg[BUFFER_SIZE] = "hello world Alice Bob EVE";
-	unsigned char cph[BUFFER_SIZE];	
 	
-	cout << mssg << endl;
 	Enc(key,mssg);
-	cout << mssg << endl;
+    cout << mssg << endl;
+
+    cout << "\nYeet\n" << endl;
 
 	Dec(key,mssg);
 	cout << mssg << endl;
@@ -78,8 +78,8 @@ int Enc(unsigned char* key, unsigned char* message)
         return -1;
     }
     /* clear up and return */
-    zeromem(key, sizeof(key));
-    zeromem(&ctr, sizeof(ctr));
+    // zeromem(key, sizeof(key));
+    // zeromem(&ctr, sizeof(ctr));
     return 0;
 }
 
@@ -125,8 +125,8 @@ int Dec(unsigned char* key, unsigned char* cipher){
         printf("ctr_setiv error: %s\n", error_to_string(err));
         return -1;
     }
-    if ((err = ctr_decrypt(cipher,         /* ciphertext */
-                           buffer,         /* plaintext */
+    if ((err = ctr_decrypt(buffer,         /* ciphertext */
+                           cipher,         /* plaintext */
                            sizeof(buffer), /* length of plaintext */
                            &ctr)           /* CTR state */
          ) != CRYPT_OK)
@@ -134,7 +134,7 @@ int Dec(unsigned char* key, unsigned char* cipher){
         printf("ctr_decrypt error: %s\n", error_to_string(err));
         return -1;
     }
-    cout << buffer << endl;
+
     /* terminate the stream */
     if ((err = ctr_done(&ctr)) != CRYPT_OK)
     {
@@ -142,8 +142,8 @@ int Dec(unsigned char* key, unsigned char* cipher){
         return -1;
     }
     /* clear up and return */
-    zeromem(key, sizeof(key));
-    zeromem(&ctr, sizeof(ctr));
+    // zeromem(key, sizeof(key));
+    // zeromem(&ctr, sizeof(ctr));
     return 0;
 
 }
