@@ -3,6 +3,8 @@
 #include <iostream>
 #include <unistd.h>
 #include <sstream>
+#include <vector>
+#include <fstream>
 #include <tomcrypt.h>
 
 #define KEYSIZE 16
@@ -34,6 +36,8 @@ int main () {
     unsigned char mac_1_iprev[KEYSIZE];     //use to store prev aggregate mac
     unsigned char mac_1_i[KEYSIZE];
     
+    vector<string> plaintexts;
+
     //initialize initial key
     memcpy(k_next,key,KEYSIZE);
 
@@ -60,9 +64,14 @@ int main () {
         //hash to find current aggregate mac
         Hash(temp,mac_1_i);
 
-        // cout << recv_arr << endl;
+        //decrypt messages
         Dec(k_curr,recv_arr);
-        // cout << recv_arr << endl;
+
+        char str[BUFFER_SIZE];
+        memcpy(str,recv_arr, BUFFER_SIZE);
+
+        string cpp_str(str);
+        plaintexts.push_back(cpp_str);
 
         //hash key
         Hash(k_curr,k_next);
@@ -73,11 +82,7 @@ int main () {
 
     }
 
-    for(int i = 0; i < KEYSIZE; i++){
-        cout << (int)mac_1_i[i] << " ";
-    }
-    cout << endl;
-
+    
     //saves final mac for verification
     unsigned char client_mac[KEYSIZE];
     socket.recv(client_mac,KEYSIZE);
@@ -93,12 +98,23 @@ int main () {
     }
 
     if(valid){
-        cout << "Write to file" << endl;
-        socket.send("Good",BUFFER_SIZE);
+        socket.send("Valid",BUFFER_SIZE);
+        cout << "Valid MAC" << endl;
+        cout << "Writing messages to received.txt" << endl;
+
+        ofstream out("received.txt");
+        for(auto p : plaintexts){
+            out << p;
+        }
+
+
+        cout << "SERVER OFFLINE" << endl;
     }
     else{
-        // cout << client_mac << endl;
-        socket.send("Bad",BUFFER_SIZE);
+        socket.send("Invalid",BUFFER_SIZE);
+        cout << "Invalid MAC" << endl;
+        cout << "Messages dump!" << endl;
+        cout << "SERVER OFFLINE" << endl;
     }
     
 

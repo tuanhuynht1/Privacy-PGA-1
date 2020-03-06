@@ -56,6 +56,8 @@ int main (int argc, char** argv)
     //initialize initial key
     memcpy(k_next,key,KEYSIZE);
  
+    //message counter
+    int i = 0;
  
     //begin encrypting N message
     for(auto mssg : messages){
@@ -90,10 +92,17 @@ int main (int argc, char** argv)
         socket.send(send_arr,BUFFER_SIZE);
         //receive acknowledgment
         socket.recv(recv_arr, BUFFER_SIZE);
-        // cout << recv_arr << endl;
+        //increment message counter
+        i++; 
+
+        //print cipher text to console 
+        cout << "CIPHERTEXT " << i <<":" << endl;
+        cout << send_arr << endl << endl;
         
     }
 
+    cout << "----------------------------------------------------------------------\n" << endl;
+    cout << "Final aggregate MAC in integer form: \n" << endl;
     for(int i = 0; i < KEYSIZE; i++){
         cout << (int)mac_1_i[i] << " ";
     }
@@ -101,7 +110,7 @@ int main (int argc, char** argv)
 
     socket.send(mac_1_i, KEYSIZE);
     socket.recv(recv_arr, BUFFER_SIZE);
-    cout << recv_arr << endl;
+    cout << endl << recv_arr << endl;
 
     return 0;
 }
