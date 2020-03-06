@@ -163,9 +163,9 @@ int Enc(unsigned char* key, unsigned char* message)
 }
 
 void Hash(unsigned char* message, unsigned char* hash){
-    hash_state md;
-    md5_init(&md);
-    md5_process(&md, message, KEYSIZE);
-    md5_done(&md, hash);
+    hash_state sha1;
+    sha1_init(&sha1);
+    sha1_process(&sha1, message, KEYSIZE);
+    sha1_done(&sha1, hash);
 }
 
