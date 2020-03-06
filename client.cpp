@@ -23,7 +23,8 @@ unsigned char IV[KEYSIZE] = "bbcdefhij12345";
 vector<string> parseMessages(string file);
 int Enc(unsigned char* key, unsigned char* message);
 void Hash(unsigned char* message, unsigned char* hash);
-void Hmac(unsigned char* k, unsigned char *message, char *mac);
+void Hmac(unsigned char* k, unsigned char *message, unsigned char *mac);
+void Concat(unsigned char* A, unsigned char* B, unsigned char* AB);
 
 
 int main (int argc, char** argv)
@@ -43,15 +44,18 @@ int main (int argc, char** argv)
     //read in plaintexts for encryption
     vector<string> messages = parseMessages(argv[1]);
 
-    unsigned char recv_arr[BUFFER_SIZE] = {'\0'};    //use to recieve server mssg
+    unsigned char recv_arr[BUFFER_SIZE];    //use to recieve server mssg
     unsigned char send_arr[BUFFER_SIZE];    //use to send mssg to server 
     unsigned char k_curr[KEYSIZE];          //use to store current key
     unsigned char k_next[KEYSIZE];          //use to store next key
-    char mac[KEYSIZE];                      //use to store mac
+    unsigned char mac_i[KEYSIZE];           //use to store mac 
+    unsigned char mac_1_iprev[KEYSIZE];     //use to store prev aggregate mac
+    unsigned char mac_1_i[KEYSIZE];         //use to store curr aggregate mac
+
     
     //initialize initial key
     memcpy(k_next,key,KEYSIZE);
-
+ 
  
     //begin encrypting N message
     for(auto mssg : messages){
@@ -60,13 +64,23 @@ int main (int argc, char** argv)
         memcpy(send_arr,mssg.c_str(),BUFFER_SIZE);
         
         //update key
-        memcpy(k_curr,k_next,KEYSIZE);     
+        memcpy(k_curr,k_next,KEYSIZE);    
 
         //Encrypt using current iteration key
         Enc(k_curr,send_arr);
 
         //compute current iteration mac
-        Hmac(k_curr,send_arr,mac);
+        Hmac(k_curr,send_arr,mac_i);
+
+        //update aggregate mac
+        memcpy(mac_1_iprev,mac_i, KEYSIZE); 
+
+        //concat mac_iprev with current mac
+        unsigned char temp[2*KEYSIZE];
+        Concat(mac_1_iprev,mac_i,temp);
+
+        //hash to find current aggregate mac
+        Hash(temp,mac_1_i);
         
         //Hash key for next iteration
         Hash(k_curr,k_next);
@@ -80,8 +94,12 @@ int main (int argc, char** argv)
         
     }
 
+    for(int i = 0; i < KEYSIZE; i++){
+        cout << (int)mac_1_i[i] << " ";
+    }
+    cout << endl;
 
-    socket.send(mac, KEYSIZE);
+    socket.send(mac_1_i, KEYSIZE);
     socket.recv(recv_arr, BUFFER_SIZE);
     cout << recv_arr << endl;
 
@@ -174,7 +192,7 @@ void Hash(unsigned char* message, unsigned char* hash){
     sha1_done(&sha1, hash);
 }
 
-void Hmac(unsigned char* k, unsigned char *message, char *mac) {
+void Hmac(unsigned char* k, unsigned char *message, unsigned char *mac) {
 
     int idx, err;
     hmac_state hmac;
@@ -205,5 +223,14 @@ void Hmac(unsigned char* k, unsigned char *message, char *mac) {
     // cout<<"mac length: "<<dstlen<<" bytes"<<endl;
     // cout<<endl;
     // cout<<mac<<endl;
-} 
+}
+
+void Concat(unsigned char* A,  unsigned char* B,  unsigned char* AB){
+    for(int i = 0; i < KEYSIZE; i++){
+        AB[i] = A[i];
+    }
+    for(int i = KEYSIZE; i < 2*KEYSIZE; i++){
+        AB[i] = A[i];
+    }
+}
 

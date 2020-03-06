@@ -14,7 +14,8 @@ unsigned char IV[KEYSIZE] = "bbcdefhij12345";
 
 int Dec(unsigned char* key, unsigned char* cipher);
 void Hash(unsigned char* message, unsigned char* hash);
-void Hmac(unsigned char* k, unsigned char *message, char *mac);
+void Hmac(unsigned char* k, unsigned char *message, unsigned char *mac);
+void Concat(unsigned char* A,  unsigned char* B,  unsigned char* AB);
 
 int main () {
 
@@ -29,7 +30,9 @@ int main () {
     unsigned char recv_arr[BUFFER_SIZE];
     unsigned char k_curr[KEYSIZE];
     unsigned char k_next[KEYSIZE];
-    char mac[KEYSIZE];
+    unsigned char mac_i[KEYSIZE];           //use to store mac 
+    unsigned char mac_1_iprev[KEYSIZE];     //use to store prev aggregate mac
+    unsigned char mac_1_i[KEYSIZE];
     
     //initialize initial key
     memcpy(k_next,key,KEYSIZE);
@@ -45,7 +48,17 @@ int main () {
         memcpy(k_curr,k_next,KEYSIZE);
 
         //compute mac_i of cipher
-        Hmac(k_curr,recv_arr,mac);
+        Hmac(k_curr,recv_arr,mac_i);
+
+        //update aggregate mac
+        memcpy(mac_1_iprev,mac_i, KEYSIZE); 
+
+        //concat mac_iprev with current mac
+        unsigned char temp[2*KEYSIZE];
+        Concat(mac_1_iprev,mac_i,temp);
+
+        //hash to find current aggregate mac
+        Hash(temp,mac_1_i);
 
         // cout << recv_arr << endl;
         Dec(k_curr,recv_arr);
@@ -60,14 +73,19 @@ int main () {
 
     }
 
+    for(int i = 0; i < KEYSIZE; i++){
+        cout << (int)mac_1_i[i] << " ";
+    }
+    cout << endl;
+
     //saves final mac for verification
-    char client_mac[KEYSIZE];
+    unsigned char client_mac[KEYSIZE];
     socket.recv(client_mac,KEYSIZE);
 
     //verifies server computed mac with client's mac
     bool valid = true;
     for(int i = 0; i < KEYSIZE; i++){
-        int x = mac[i], y = client_mac[i];
+        int x = mac_1_i[i], y = client_mac[i];
         if (x != y){
             valid = false;
             break;
@@ -79,6 +97,7 @@ int main () {
         socket.send("Good",BUFFER_SIZE);
     }
     else{
+        // cout << client_mac << endl;
         socket.send("Bad",BUFFER_SIZE);
     }
     
@@ -159,7 +178,7 @@ void Hash(unsigned char* message, unsigned char* hash){
     sha1_done(&sha1, hash);
 }
 
-void Hmac(unsigned char* k, unsigned char *message, char *mac) {
+void Hmac(unsigned char* k, unsigned char *message, unsigned char *mac) {
 
     int idx, err;
     hmac_state hmac;
@@ -191,3 +210,13 @@ void Hmac(unsigned char* k, unsigned char *message, char *mac) {
     // cout<<endl;
     // cout<<mac<<endl;
 }
+
+void Concat(unsigned char* A,  unsigned char* B,  unsigned char* AB){
+    for(int i = 0; i < KEYSIZE; i++){
+        AB[i] = A[i];
+    }
+    for(int i = KEYSIZE; i < 2*KEYSIZE; i++){
+        AB[i] = A[i];
+    }
+}
+
