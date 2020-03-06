@@ -31,7 +31,7 @@ int main (int argc, char** argv)
 {
     //makes sure message file is provided
     if(argc < 2){
-        cout << "NOOB" << endl;
+        cout << "Not enough command line argument provided. Must pass in file name!" << endl;
         return -1;     
     } 
 
