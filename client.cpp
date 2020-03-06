@@ -23,6 +23,7 @@ unsigned char IV[KEYSIZE] = "bbcdefhij12345";
 vector<string> parseMessages(string file);
 int Enc(unsigned char* key, unsigned char* message);
 void Hash(unsigned char* message, unsigned char* hash);
+void Hmac(unsigned char* k, unsigned char *message, char *mac);
 
 
 int main (int argc, char** argv)
@@ -42,11 +43,11 @@ int main (int argc, char** argv)
     //read in plaintexts for encryption
     vector<string> messages = parseMessages(argv[1]);
 
-    unsigned char recv_arr[BUFFER_SIZE];
-    unsigned char send_arr[BUFFER_SIZE];
-
-    unsigned char k_curr[KEYSIZE];
-    unsigned char k_next[KEYSIZE];
+    unsigned char recv_arr[BUFFER_SIZE];    //use to recieve server mssg
+    unsigned char send_arr[BUFFER_SIZE];    //use to send mssg to server 
+    unsigned char k_curr[KEYSIZE];          //use to store current key
+    unsigned char k_next[KEYSIZE];          //use to store next key
+    char mac[KEYSIZE];                      //use to store mac
     
     //initialize initial key
     memcpy(k_next,key,KEYSIZE);     
@@ -62,15 +63,23 @@ int main (int argc, char** argv)
 
         //Encrypt using current iteration key
         Enc(k_curr,send_arr);
+
+        //compute current iteration mac
+        Hmac(k_curr,send_arr,mac);
         
-        //Hash key
+        //Hash key for next iteration
         Hash(k_curr,k_next);
 
 
 
         socket.send(send_arr,BUFFER_SIZE);
         socket.recv(recv_arr, BUFFER_SIZE);
-        cout << recv_arr << endl;
+        // cout << mac << endl;
+        for(auto c : mac){
+            int i = c;
+            cout << i << " ";
+        }
+        cout << endl;
     }
 
 
@@ -168,4 +177,37 @@ void Hash(unsigned char* message, unsigned char* hash){
     sha1_process(&sha1, message, KEYSIZE);
     sha1_done(&sha1, hash);
 }
+
+void Hmac(unsigned char* k, unsigned char *message, char *mac) {
+
+    int idx, err;
+    hmac_state hmac;
+    unsigned char key[KEYSIZE], dst[MAXBLOCKSIZE];
+    memcpy(key,k,KEYSIZE);
+    unsigned long dstlen;
+
+    /* register SHA-1 */
+    register_hash(&sha1_desc);
+
+    /* get index of SHA1 in hash descriptor table */
+    idx = find_hash("sha1");
+
+    /* we would make up our symmetric key in "key[]" here */
+    /* start the HMAC */
+    hmac_init(&hmac, idx, key, 16);
+
+    /* process a few octets */
+    hmac_process(&hmac, (const unsigned char*) message, sizeof(message));
+
+    /* get result (presumably to use it somehow...) */
+    dstlen = sizeof(dst);
+    
+    hmac_done(&hmac, dst, &dstlen);
+
+    memcpy(mac, dst, dstlen);
+
+    // cout<<"mac length: "<<dstlen<<" bytes"<<endl;
+    // cout<<endl;
+    // cout<<mac<<endl;
+} 
 
