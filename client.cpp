@@ -43,16 +43,17 @@ int main (int argc, char** argv)
     //read in plaintexts for encryption
     vector<string> messages = parseMessages(argv[1]);
 
-    unsigned char recv_arr[BUFFER_SIZE];    //use to recieve server mssg
+    unsigned char recv_arr[BUFFER_SIZE] = {'\0'};    //use to recieve server mssg
     unsigned char send_arr[BUFFER_SIZE];    //use to send mssg to server 
     unsigned char k_curr[KEYSIZE];          //use to store current key
     unsigned char k_next[KEYSIZE];          //use to store next key
     char mac[KEYSIZE];                      //use to store mac
     
     //initialize initial key
-    memcpy(k_next,key,KEYSIZE);     
+    memcpy(k_next,key,KEYSIZE);
 
-    //begin encrypting each message
+ 
+    //begin encrypting N message
     for(auto mssg : messages){
 
         //copy message into buffer
@@ -71,23 +72,18 @@ int main (int argc, char** argv)
         Hash(k_curr,k_next);
 
 
-
+        //send cipher text
         socket.send(send_arr,BUFFER_SIZE);
+        //receive acknowledgment
         socket.recv(recv_arr, BUFFER_SIZE);
-        // cout << mac << endl;
-        for(auto c : mac){
-            int i = c;
-            cout << i << " ";
-        }
-        cout << endl;
+        // cout << recv_arr << endl;
+        
     }
 
 
-    
-
-    // socket.send(encrypted_msg, msg_size);
-    // socket.recv(recv_arr, 100);
-
+    socket.send(mac, KEYSIZE);
+    socket.recv(recv_arr, BUFFER_SIZE);
+    cout << recv_arr << endl;
 
     return 0;
 }

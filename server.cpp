@@ -2,7 +2,7 @@
 #include <string>
 #include <iostream>
 #include <unistd.h>
-
+#include <sstream>
 #include <tomcrypt.h>
 
 #define KEYSIZE 16
@@ -34,7 +34,8 @@ int main () {
     //initialize initial key
     memcpy(k_next,key,KEYSIZE);
 
-    while (true) {
+
+    while (i<100) {
 
 
         //  Wait for next request from client
@@ -53,17 +54,36 @@ int main () {
         //hash key
         Hash(k_curr,k_next);
 
-        // cout << mac << endl;
-        for(auto c : mac){
-            int i = c;
-            cout << i << " ";
-        }
-        cout << endl;
         
-        socket.send(to_string(i).c_str(), BUFFER_SIZE);
+        socket.send("Mesasge received", BUFFER_SIZE);
         i++;
 
     }
+
+    //saves final mac for verification
+    char client_mac[KEYSIZE];
+    socket.recv(client_mac,KEYSIZE);
+
+    //verifies server computed mac with client's mac
+    bool valid = true;
+    for(int i = 0; i < KEYSIZE; i++){
+        int x = mac[i], y = client_mac[i];
+        if (x != y){
+            valid = false;
+            break;
+        }
+    }
+
+    if(valid){
+        cout << "Write to file" << endl;
+        socket.send("Good",BUFFER_SIZE);
+    }
+    else{
+        socket.send("Bad",BUFFER_SIZE);
+    }
+    
+
+
     return 0;
 }
 
