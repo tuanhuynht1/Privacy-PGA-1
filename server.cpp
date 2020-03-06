@@ -12,57 +12,42 @@ using namespace std;
 unsigned char key[KEYSIZE] = "123456789012345";
 unsigned char IV[KEYSIZE] = "bbcdefhij12345";
 
-void pseudo_random_generator(unsigned char* arr, int keysize)
-{
-    prng_state prng;
-    unsigned char buf[keysize] = "bsn-2205";
-
-    /* start it */
-    sober128_start(&prng);
-    
-    /* add entropy */
-    sober128_add_entropy(buf, 9, &prng);
-
-    /* ready */
-    sober128_ready(&prng);
-
-    /* read */
-    sober128_read(buf, keysize, &prng);
-    
-    memcpy(arr, buf, keysize);
-}
-
-void decrypt_OTP(char* cipher_text, char* message, int keysize)
-{
-    unsigned char key[keysize];
-    pseudo_random_generator(key, keysize);
-    
-    for(int i = 0; i < keysize; i++)
-    {
-        message[i] = cipher_text[i] ^ key[i];
-    }
-}
-
 int Dec(unsigned char* key, unsigned char* cipher);
+void Hash(unsigned char* message, unsigned char* hash);
 
 int main () {
+
     //  Prepare our context and socket
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REP);
-    socket.bind ("tcp://*:55558");
+    socket.bind ("tcp://*:52558");
 
     int i = 0;
-
     cout << "SERVER ONLINE" << endl;
+    
+    unsigned char recv_arr[BUFFER_SIZE];
+    unsigned char k_curr[KEYSIZE];
+    unsigned char k_next[KEYSIZE];
+    
+    //initialize initial key
+    memcpy(k_next,key,KEYSIZE);
 
     while (true) {
-        unsigned char recv_arr[BUFFER_SIZE];
+
 
         //  Wait for next request from client
         socket.recv(recv_arr, BUFFER_SIZE);
-        //cout << recv_arr << endl;
-        Dec(key,recv_arr);
+        
+        //update key
+        memcpy(k_curr,k_next,KEYSIZE);
+
         cout << recv_arr << endl;
+        Dec(k_curr,recv_arr);
+        cout << recv_arr << endl;
+
+        //hash key
+        Hash(k_curr,k_next);
+        
         socket.send(to_string(i).c_str(), BUFFER_SIZE);
         i++;
 
@@ -135,3 +120,9 @@ int Dec(unsigned char* key, unsigned char* cipher){
 
 }
 
+void Hash(unsigned char* message, unsigned char* hash){
+    hash_state md;
+    md5_init(&md);
+    md5_process(&md, message, KEYSIZE);
+    md5_done(&md, hash);
+}

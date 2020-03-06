@@ -22,6 +22,7 @@ unsigned char IV[KEYSIZE] = "bbcdefhij12345";
 
 vector<string> parseMessages(string file);
 int Enc(unsigned char* key, unsigned char* message);
+void Hash(unsigned char* message, unsigned char* hash);
 
 
 int main (int argc, char** argv)
@@ -36,7 +37,7 @@ int main (int argc, char** argv)
     zmq::context_t context (1);
     zmq::socket_t socket (context, ZMQ_REQ);
     std::cout << "Connecting to server…" << std::endl;
-    socket.connect ("tcp://localhost:55558");
+    socket.connect ("tcp://localhost:52558");
 
     //read in plaintexts for encryption
     vector<string> messages = parseMessages(argv[1]);
@@ -44,13 +45,28 @@ int main (int argc, char** argv)
     unsigned char recv_arr[BUFFER_SIZE];
     unsigned char send_arr[BUFFER_SIZE];
 
+    unsigned char k_curr[KEYSIZE];
+    unsigned char k_next[KEYSIZE];
+    
+    //initialize initial key
+    memcpy(k_next,key,KEYSIZE);     
+
     //begin encrypting each message
     for(auto mssg : messages){
+
         //copy message into buffer
         memcpy(send_arr,mssg.c_str(),BUFFER_SIZE);
+        
+        //update key
+        memcpy(k_curr,k_next,KEYSIZE);     
 
-        Enc(key,send_arr);
-        cout << send_arr << endl;
+        //Encrypt using current iteration key
+        Enc(k_curr,send_arr);
+        
+        //Hash key
+        Hash(k_curr,k_next);
+
+
 
         socket.send(send_arr,BUFFER_SIZE);
         socket.recv(recv_arr, BUFFER_SIZE);
@@ -146,33 +162,10 @@ int Enc(unsigned char* key, unsigned char* message)
     return 0;
 }
 
-void pseudo_random_generator(unsigned char* arr, int keysize)
-{
-    prng_state prng;
-    unsigned char buf[keysize] = "bsn-2205";
-
-    /* start it */
-    sober128_start(&prng);
-    
-    /* add entropy */
-    sober128_add_entropy(buf, 9, &prng);
-
-    /* ready */
-    sober128_ready(&prng);
-
-    /* read */
-    sober128_read(buf, keysize, &prng);
-    
-    memcpy(arr, buf, keysize);
+void Hash(unsigned char* message, unsigned char* hash){
+    hash_state md;
+    md5_init(&md);
+    md5_process(&md, message, KEYSIZE);
+    md5_done(&md, hash);
 }
 
-void encrypt_OTP(char* message, char* cipher_text, int keysize)
-{
-    unsigned char key[keysize];
-    pseudo_random_generator(key, keysize);
-    
-    for(int i = 0; i < keysize; i++)
-    {
-        cipher_text[i] = message[i] ^ key[i];
-    }
-}
